@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Travel Memo — Generador · Omnicom Production Latam</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<style>
+  :root{
+    --ink:#141414;
+    --paper:#f2f0ea;
+    --panel:#ffffff;
+    --line:#e2ded4;
+    --line-strong:#c9c4b8;
+    --muted:#6d6a61;
+    --text:#1c1a16;
+    --accent:#1f3a5f;
+    --accent-soft:#eef2f7;
+    --ok:#1f6b45;
+    --radius:10px;
+    --sheet-w:794px;
+    font-synthesis:none;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+    line-height:1.45;
+  }
+
+  /* ---------- App chrome ---------- */
+  .topbar{
+    background:var(--ink);
+    color:#fff;
+    padding:14px 22px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:16px;
+    flex-wrap:wrap;
+    position:sticky;top:0;z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:12px;min-width:0;}
+  .brand .mark{width:34px;height:26px;flex:0 0 34px;}
+  .brand .mark svg{width:100%;height:100%;display:block;}
+  .brand h1{font-size:14px;letter-spacing:.12em;font-weight:700;margin:0;text-transform:uppercase;}
+  .brand small{display:block;font-size:10.5px;letter-spacing:.22em;color:#b9b6ad;font-weight:600;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .btn{
+    font:inherit;font-weight:600;font-size:13.5px;
+    border:1px solid transparent;border-radius:8px;
+    padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
+    transition:transform .06s ease, background .15s ease, opacity .15s ease;
+  }
+  .btn:active{transform:translateY(1px);}
+  .btn-primary{background:#fff;color:var(--ink);}
+  .btn-primary:hover{background:#eceae4;}
+  .btn-ghost{background:transparent;color:#fff;border-color:#4a4843;}
+  .btn-ghost:hover{background:#242320;}
+  .btn svg{width:15px;height:15px;}
+
+  /* ---------- Layout ---------- */
+  .workspace{
+    display:grid;
+    grid-template-columns:minmax(340px,420px) 1fr;
+    gap:0;
+    align-items:start;
+    min-height:calc(100vh - 56px);
+  }
+  .editor{
+    padding:22px 22px 60px;
+    border-right:1px solid var(--line);
+    background:var(--panel);
+    max-height:calc(100vh - 56px);
+    overflow:auto;
+    position:sticky;top:56px;
+  }
+  .preview-wrap{
+    padding:34px 24px 80px;
+    display:flex;
+    justify-content:center;
+    overflow:auto;
+  }
+
+  .lead{font-size:13px;color:var(--muted);margin:0 0 18px;}
+  .lead b{color:var(--text);font-weight:600;}
+
+  fieldset{border:none;margin:0 0 22px;padding:0;}
+  legend{
+    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);padding:0;margin:0 0 12px;
+    display:flex;align-items:center;gap:9px;width:100%;
+  }
+  legend::after{content:"";flex:1;height:1px;background:var(--line);}
+
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
+  .grid .full{grid-column:1 / -1;}
+  .field{display:flex;flex-direction:column;gap:5px;min-width:0;}
+  .field label{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.02em;}
+  .field input{
+    font:inherit;font-size:13.5px;color:var(--text);
+    padding:9px 11px;border:1px solid var(--line-strong);border-radius:7px;
+    background:#fff;width:100%;transition:border .12s ease, box-shadow .12s ease;
+  }
+  .field input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft);}
+  .field input::placeholder{color:#b3afa5;}
+
+  details.contacts summary{
+    cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent);list-style:none;display:flex;align-items:center;gap:8px;margin-bottom:6px;
+  }
+  details.contacts summary::-webkit-details-marker{display:none;}
+  details.contacts summary::before{content:"▸";font-size:10px;transition:transform .15s ease;}
+  details.contacts[open] summary::before{transform:rotate(90deg);}
+
+  .hint{font-size:11px;color:var(--muted);margin:-4px 0 4px;}
+
+  /* ---------- The memo sheet (must mirror the official template: strict B/W, Arial) ---------- */
+  .sheet-scale{transform-origin:top center;}
+  .sheet{
+    width:var(--sheet-w);
+    background:#fff;
+    color:#000;
+    font-family:Arial,Helvetica,"Liberation Sans",sans-serif;
+    padding:46px 50px 40px;
+    box-shadow:0 8px 40px rgba(20,18,14,.14);
+    font-size:11px;
+    line-height:1.4;
+  }
+  .sheet .m-header{display:flex;align-items:stretch;margin-bottom:20px;}
+  .sheet .m-logo{
+    display:flex;align-items:center;gap:9px;padding:0 18px 0 4px;
+  }
+  .sheet .m-logo .mk{width:36px;height:27px;flex:0 0 36px;display:block;}
+  .sheet .m-logo .lt{font-weight:800;font-size:12px;line-height:1.05;letter-spacing:.01em;}
+  .sheet .m-banner{
+    flex:1;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;
+    font-size:24px;font-weight:800;letter-spacing:.02em;
+  }
+
+  .sheet .m-bar{
+    background:#000;color:#fff;font-weight:700;font-size:11px;
+    padding:6px 12px;margin-bottom:8px;letter-spacing:.02em;
+  }
+  .sheet .m-bar span{font-weight:400;}
+
+  .sheet .m-section{
+    text-align:center;font-weight:700;font-size:11.5px;letter-spacing:.03em;
+    border-top:2px solid #000;border-bottom:2px solid #000;
+    padding:5px 0;margin:22px 0 0;
+  }
+  .sheet .m-block{display:flex;gap:0;border-bottom:1px solid #000;padding:14px 0;}
+  .sheet .m-ico{flex:0 0 128px;display:flex;align-items:center;gap:12px;padding-left:6px;}
+  .sheet .m-ico svg{width:46px;height:34px;}
+  .sheet .m-ico .role{font-weight:700;font-size:11px;}
+  .sheet .m-rows{flex:1;}
+  .sheet .m-row{display:grid;grid-template-columns:180px 1fr;padding:1.5px 0;}
+  .sheet .m-row .k{font-weight:700;}
+  .sheet .m-row .v{color:#000;}
+  .sheet .m-row .v a{color:#0563c1;text-decoration:underline;word-break:break-word;}
+  .sheet .m-sep{height:8px;}
+
+  .sheet .m-note{font-size:10px;font-style:italic;margin:8px 0 0;}
+
+  .sheet .m-contacts-bar{
+    background:#000;color:#fff;text-align:center;font-weight:700;font-size:11px;
+    padding:8px 12px;margin-top:34px;line-height:1.4;
+  }
+  .sheet .m-contacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:16px 4px 0;}
+  .sheet .m-contact .role{font-weight:700;font-size:10.5px;letter-spacing:.02em;margin-bottom:8px;}
+  .sheet .m-contact .name{margin-bottom:3px;}
+  .sheet .m-contact .mail{color:#0563c1;text-decoration:underline;word-break:break-word;margin-bottom:3px;}
+  .sheet .m-foot{text-align:center;font-size:9px;color:#000;margin-top:46px;}
+
+  /* ---------- Toast ---------- */
+  #toast{
+    position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
+    background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:500;
+    opacity:0;pointer-events:none;transition:.25s ease;z-index:50;box-shadow:0 6px 24px rgba(0,0,0,.25);
+  }
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  #toast.err{background:#7a2020;}
+
+  /* ---------- Responsive ---------- */
+  @media (max-width:900px){
+    .workspace{grid-template-columns:1fr;}
+    .editor{position:static;max-height:none;border-right:none;border-bottom:1px solid var(--line);}
+    .preview-wrap{padding:24px 12px 70px;}
+  }
+  @media print{
+    .topbar,.editor,#toast{display:none!important;}
+    .workspace{display:block;}
+    .preview-wrap{padding:0;overflow:visible;}
+    .sheet-scale{transform:none!important;}
+    .sheet{box-shadow:none;padding:24px 30px;}
+    body{background:#fff;}
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <div class="mark">
+      <svg viewBox="0 0 462 348" xmlns="http://www.w3.org/2000/svg">
+        <polygon fill="#ffffff" points="3,67 3,342 224,342 225,282 440,282 440,6 69,6 69,67 379,68 379,220 224,221 223,281 67,281 66,66"/>
+      </svg>
+    </div>
+    <div>
+      <h1>Travel Memo</h1>
+      <small>Omnicom Production Latam</small>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn btn-ghost" id="btnPrint" title="Imprimir o guardar como PDF desde el navegador">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+      Imprimir
+    </button>
+    <button class="btn btn-primary" id="btnPdf">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
+      Descargar PDF
+    </button>
+  </div>
+</header>
+
+<div class="workspace">
+
+  <!-- ========== EDITOR ========== -->
+  <section class="editor">
+    <p class="lead">Completa los campos del viaje. El documento de la derecha se actualiza en vivo y conserva el formato exacto de la plantilla. Al terminar, pulsa <b>Descargar PDF</b>.</p>
+
+    <fieldset>
+      <legend>Datos generales</legend>
+      <div class="grid">
+        <div class="field full"><label>Project name</label><input data-bind="projectName" value="HOUSE OP"></div>
+        <div class="field full"><label>Trip purpose</label><input data-bind="tripPurpose" value="CANNES"></div>
+        <div class="field full"><label>Traveler</label><input data-bind="traveler" value="JUANITA RODRIGUEZ ARANGO"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Vuelo — Inbound (Departure)</legend>
+      <div class="grid">
+        <div class="field full"><label>Departure (fecha)</label><input data-bind="depDate" value="20/06/26" placeholder="dd/mm/aa"></div>
+        <div class="field"><label>Flight #</label><input data-bind="depFlight" value="326"></div>
+        <div class="field"><label>Time</label><input data-bind="depTime" value="7:20:00 AM"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Vuelo — Outbound (Arrival)</legend>
+      <div class="grid">
+        <div class="field full"><label>Arrival (fecha)</label><input data-bind="arrDate" value="20/06/26" placeholder="dd/mm/aa"></div>
+        <div class="field"><label>Flight #</label><input data-bind="arrFlight" value="326"></div>
+        <div class="field"><label>Time</label><input data-bind="arrTime" value="10:25:00 AM"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Hotel</legend>
+      <div class="grid">
+        <div class="field full"><label>Hotel</label><input data-bind="hotelName" value="Studio Deluxe Miramar"></div>
+        <div class="field full"><label>Address &amp; location</label><input data-bind="hotelAddress" value="65 boulevard La Croisette, Centro de Cannes, 06400 Cannes, Francia"></div>
+        <div class="field full"><label>Check in</label><input data-bind="checkIn" value="20/06/2026 - 3:00pm"></div>
+        <div class="field full"><label>Check out</label><input data-bind="checkOut" value="25/06/2026 11:00am"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Per diem</legend>
+      <div class="grid">
+        <div class="field"><label>Perdiem</label><input data-bind="perDiem" value="N/A"></div>
+        <div class="field"><label>Days</label><input data-bind="perDiemDays" value="N/A"></div>
+        <div class="field full"><label>Total</label><input data-bind="perDiemTotal" value="N/A"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Pickup — Inbound</legend>
+      <div class="grid">
+        <div class="field full"><label>Pickup</label><input data-bind="pickup" value="N/A"></div>
+        <div class="field"><label>Hour</label><input data-bind="pickupHour" value="N/A"></div>
+        <div class="field"><label>Destination</label><input data-bind="pickupDest" value="N/A"></div>
+        <div class="field full"><label>Driver</label><input data-bind="driver" value="N/A"></div>
+        <div class="field"><label>Phone</label><input data-bind="driverPhone" value="N/A"></div>
+        <div class="field"><label>Plate</label><input data-bind="plate" value="N/A"></div>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <details class="contacts">
+        <summary>Contactos (editar si cambian)</summary>
+        <p class="hint">Vienen precargados con los datos oficiales de la plantilla. Ábrelos solo si necesitas cambiarlos.</p>
+        <div class="grid">
+          <div class="field full"><label>Travel coordinator 1 — Nombre</label><input data-bind="tc1Name" value="Adelaida Cano"></div>
+          <div class="field"><label>Email</label><input data-bind="tc1Email" value="adelaida.cano@omc.com"></div>
+          <div class="field"><label>Teléfono</label><input data-bind="tc1Phone" value="3214929905"></div>
+
+          <div class="field full"><label>Travel coordinator 2 — Nombre</label><input data-bind="tc2Name" value="Alejandra Diaz"></div>
+          <div class="field"><label>Email</label><input data-bind="tc2Email" value="cdiaz@omc.com"></div>
+          <div class="field"><label>Teléfono</label><input data-bind="tc2Phone" value="(+57) 3123142452"></div>
+
+          <div class="field full"><label>Travel emergency — Nombre</label><input data-bind="teName" value="Emergencias BCD"></div>
+          <div class="field"><label>Email</label><input data-bind="teEmail" value="servicio724@bcdtravel.com.co"></div>
+          <div class="field"><label>Teléfono</label><input data-bind="tePhone" value="(+57) 6015899440"></div>
+        </div>
+      </details>
+    </fieldset>
+  </section>
+
+  <!-- ========== PREVIEW ========== -->
+  <div class="preview-wrap">
+    <div class="sheet-scale" id="sheetScale">
+      <div class="sheet" id="sheet">
+
+        <div class="m-header">
+          <div class="m-logo">
+            <svg class="mk" viewBox="0 0 462 348" xmlns="http://www.w3.org/2000/svg">
+              <polygon fill="#000000" points="3,67 3,342 224,342 225,282 440,282 440,6 69,6 69,67 379,68 379,220 224,221 223,281 67,281 66,66"/>
+            </svg>
+            <div class="lt">OMNICOM<br>PRODUCTION</div>
+          </div>
+          <div class="m-banner">TRAVEL MEMO</div>
+        </div>
+
+        <div class="m-bar">PROJECT NAME: <span data-out="projectName"></span></div>
+        <div class="m-bar">TRIP PURPOSE: <span data-out="tripPurpose"></span></div>
+        <div class="m-bar">TRAVELER: <span data-out="traveler"></span></div>
+
+        <div class="m-section">FLIGHT INFORMATION</div>
+
+        <div class="m-block">
+          <div class="m-ico">
+            <svg viewBox="0 0 64 48" fill="#000"><path d="M2 40h60v3H2zM10 30l6-2 12-8 16-11c3-2 7-2 9 0 1 2 0 4-3 6L34 24l-6 10-5 1 3-8-9 3-4 4-4-1z"/></svg>
+            <span class="role">INBOUND</span>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="k">DEPARTURE</span><span class="v" data-out="depDate"></span></div>
+            <div class="m-row"><span class="k">FLIGHT #</span><span class="v" data-out="depFlight"></span></div>
+            <div class="m-row"><span class="k">TIME</span><span class="v" data-out="depTime"></span></div>
+          </div>
+        </div>
+
+        <div class="m-block">
+          <div class="m-ico">
+            <svg viewBox="0 0 64 48" fill="#000"><path d="M2 40h60v3H2zM8 20c-2-2-2-5 0-7 2-1 4-1 6 1l9 12 14 5 18 4c4 1 5 4 3 6-1 2-4 2-7 1L20 32 8 28z"/></svg>
+            <span class="role">OUTBOUND</span>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="k">ARRIVAL</span><span class="v" data-out="arrDate"></span></div>
+            <div class="m-row"><span class="k">FLIGHT #</span><span class="v" data-out="arrFlight"></span></div>
+            <div class="m-row"><span class="k">TIME</span><span class="v" data-out="arrTime"></span></div>
+          </div>
+        </div>
+
+        <div class="m-section">HOTEL INFORMATION</div>
+
+        <div class="m-block">
+          <div class="m-ico">
+            <svg viewBox="0 0 64 48" fill="#000"><path d="M4 14h4v14h48v-8c0-4-3-7-7-7H30v15H8V14H4v26h4v-6h48v6h4V20c0-6-4-10-10-10H26v10H12v-6z"/></svg>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="k">HOTEL:</span><span class="v" data-out="hotelName"></span></div>
+            <div class="m-row"><span class="k">ADRESS &amp; LOCATION:</span><span class="v"><a data-out="hotelAddress" href="#"></a></span></div>
+            <div class="m-sep"></div>
+            <div class="m-row"><span class="k">CHECK IN:</span><span class="v" data-out="checkIn"></span></div>
+            <div class="m-row"><span class="k">CHECK OUT:</span><span class="v" data-out="checkOut"></span></div>
+          </div>
+        </div>
+        <p class="m-note">*En el hotel solicitaran dejar una tarjeta de crédito en caso de accidentes, por favor relacione la de OP.</p>
+
+        <div class="m-section">PER DIEM INFORMATION</div>
+
+        <div class="m-block">
+          <div class="m-ico">
+            <svg viewBox="0 0 64 48" fill="none" stroke="#000" stroke-width="3"><rect x="6" y="14" width="46" height="28" rx="4"/><path d="M52 22h6v12h-6"/><circle cx="46" cy="28" r="3" fill="#000"/><path d="M14 14c0-6 6-8 14-8" stroke-width="3"/></svg>
+            <span class="role">PER DIEM</span>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="k">PERDIEM</span><span class="v" data-out="perDiem"></span></div>
+            <div class="m-row"><span class="k">DAYS</span><span class="v" data-out="perDiemDays"></span></div>
+            <div class="m-row"><span class="k">TOTAL</span><span class="v" data-out="perDiemTotal"></span></div>
+          </div>
+        </div>
+
+        <div class="m-section">PICKUP INFORMATION</div>
+
+        <div class="m-block" style="border-bottom:none;">
+          <div class="m-ico">
+            <svg viewBox="0 0 64 48" fill="#000"><path d="M8 34c-2 0-4-2-4-4v-4l6-2 4-9c1-2 3-3 5-3h26c2 0 4 1 5 3l4 9 6 2v4c0 2-2 4-4 4h-2a6 6 0 01-12 0H22a6 6 0 01-12 0zm8-16l-3 6h38l-3-6H16z"/><circle cx="16" cy="34" r="3" fill="#fff"/><circle cx="48" cy="34" r="3" fill="#fff"/></svg>
+            <span class="role">PICKUP<br>INBOUND</span>
+          </div>
+          <div class="m-rows">
+            <div class="m-row"><span class="k">PICKUP</span><span class="v" data-out="pickup"></span></div>
+            <div class="m-row"><span class="k">HOUR</span><span class="v" data-out="pickupHour"></span></div>
+            <div class="m-row"><span class="k">DESTINATION</span><span class="v" data-out="pickupDest"></span></div>
+            <div class="m-sep"></div>
+            <div class="m-row"><span class="k">DRIVER</span><span class="v" data-out="driver"></span></div>
+            <div class="m-row"><span class="k">PHONE</span><span class="v" data-out="driverPhone"></span></div>
+            <div class="m-row"><span class="k">PLATE</span><span class="v" data-out="plate"></span></div>
+          </div>
+        </div>
+
+        <div class="m-contacts-bar">OMNICOM PRODUCTION LATAM S.A.S<br>CONTACTS</div>
+        <div class="m-contacts">
+          <div class="m-contact">
+            <div class="role">TRAVEL COORDINATOR</div>
+            <div class="name">NAME: <span data-out="tc1Name"></span></div>
+            <div class="mail"><span data-out="tc1Email"></span></div>
+            <div class="phone">PHONE # <span data-out="tc1Phone"></span></div>
+          </div>
+          <div class="m-contact">
+            <div class="role">TRAVEL COORDINATOR</div>
+            <div class="name">NAME: <span data-out="tc2Name"></span></div>
+            <div class="mail"><span data-out="tc2Email"></span></div>
+            <div class="phone">PHONE # <span data-out="tc2Phone"></span></div>
+          </div>
+          <div class="m-contact">
+            <div class="role">TRAVEL EMERGENCY</div>
+            <div class="name"><span data-out="teName"></span></div>
+            <div class="mail"><span data-out="teEmail"></span></div>
+            <div class="phone">PHONE # <span data-out="tePhone"></span></div>
+          </div>
+        </div>
+
+        <div class="m-foot">Confidential - Not for Public Consumption or Distribution</div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  // ---- Live binding: inputs -> preview ----
+  var inputs = document.querySelectorAll('[data-bind]');
+  function apply(el){
+    var key = el.getAttribute('data-bind');
+    var val = el.value;
+    document.querySelectorAll('[data-out="'+key+'"]').forEach(function(target){
+      target.textContent = (val === '' ? '\u00A0' : val);
+    });
+  }
+  inputs.forEach(function(el){
+    apply(el);
+    el.addEventListener('input', function(){ apply(el); });
+  });
+
+  // ---- Responsive scaling of the sheet (display only) ----
+  var scaleWrap = document.getElementById('sheetScale');
+  var sheet = document.getElementById('sheet');
+  var SHEET_W = 794;
+  function fit(){
+    var wrap = scaleWrap.parentElement; // .preview-wrap
+    var avail = wrap.clientWidth - 48;
+    var scale = Math.min(1, avail / SHEET_W);
+    scaleWrap.style.transform = 'scale(' + scale + ')';
+    scaleWrap.style.height = (sheet.offsetHeight * scale) + 'px';
+  }
+  window.addEventListener('resize', fit);
+  var roScheduled = false;
+  var ro = new ResizeObserver(function(){
+    if (roScheduled) return;
+    roScheduled = true;
+    requestAnimationFrame(function(){
+      roScheduled = false;
+      fit();
+    });
+  });
+  ro.observe(document.body);
+  setTimeout(fit, 60);
+
+  // ---- Toast ----
+  var toastEl = document.getElementById('toast');
+  var toastTimer;
+  function toast(msg, isErr){
+    toastEl.textContent = msg;
+    toastEl.className = isErr ? 'show err' : 'show';
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toastEl.className = ''; }, 3200);
+  }
+
+  function fileName(){
+    var t = (document.querySelector('[data-bind="traveler"]').value || 'TRAVELER').trim();
+    var p = (document.querySelector('[data-bind="tripPurpose"]').value || '').trim();
+    var base = ('TRAVEL_MEMO_' + t + (p ? '_' + p : '')).toUpperCase();
+    return base.replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'') + '.pdf';
+  }
+
+  // ---- Download PDF ----
+  document.getElementById('btnPdf').addEventListener('click', function(){
+    if (typeof html2pdf === 'undefined'){
+      toast('No se pudo cargar el generador de PDF. Usa el botón Imprimir → Guardar como PDF.', true);
+      return;
+    }
+    toast('Generando PDF…');
+    // Reset display scale so html2canvas captures at full resolution
+    var prev = scaleWrap.style.transform;
+    scaleWrap.style.transform = 'none';
+    scaleWrap.style.height = 'auto';
+
+    var opt = {
+      margin: 0,
+      filename: fileName(),
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: SHEET_W + 100 },
+      jsPDF: { unit: 'px', format: [SHEET_W, sheet.offsetHeight], orientation: 'portrait', hotfixes: ['px_scaling'] },
+      pagebreak: { mode: ['avoid-all'] }
+    };
+
+    html2pdf().set(opt).from(sheet).save().then(function(){
+      scaleWrap.style.transform = prev;
+      fit();
+      toast('PDF descargado ✓');
+    }).catch(function(err){
+      console.error(err);
+      scaleWrap.style.transform = prev;
+      fit();
+      toast('Ocurrió un error al generar el PDF. Intenta con Imprimir → Guardar como PDF.', true);
+    });
+  });
+
+  // ---- Print / Save as PDF fallback ----
+  document.getElementById('btnPrint').addEventListener('click', function(){
+    window.print();
+  });
+
+})();
+</script>
+</body>
+</html>

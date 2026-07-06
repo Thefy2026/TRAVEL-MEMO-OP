@@ -1202,11 +1202,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   });
 
-  // ---- Print: builds a plain-HTML clone of the memo in a hidden iframe with the page size
-  //      forced to match the document exactly, and colors forced to print, then calls print()
-  //      on that iframe. This does not depend on html2canvas/jsPDF or the browser's PDF viewer,
-  //      so it works reliably everywhere and always yields a single page with the full design. ----
+  // ---- Print: opens a real new tab (opened synchronously on click, so it is never popup-blocked)
+  //      with a plain-HTML clone of the memo, page size forced to match the document exactly,
+  //      and colors forced to print. This does not depend on html2canvas/jsPDF or the browser's
+  //      PDF viewer, so it works reliably everywhere and always yields a single page with the
+  //      full design. A visible "Imprimir" button is included in that tab as a manual fallback
+  //      in case the browser blocks the automatic print() call. ----
   document.getElementById('btnPrint').addEventListener('click', function(){
+    // Open the tab FIRST, synchronously, in direct response to the click — this is what
+    // keeps browsers from treating it as a blocked popup.
+    var printWin = window.open('', '_blank');
+    if (!printWin){
+      toast(DICT[currentLang].toastErr, true);
+      return;
+    }
+    printWin.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Travel Memo</title></head><body style="font-family:sans-serif;color:#666;padding:40px;">Generando…</body></html>');
+
     toast(DICT[currentLang].toastGenerating);
 
     // Measure the sheet at its true, unscaled size
@@ -1225,54 +1236,44 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     var hMM = (hPx * mmPerPx).toFixed(2);
 
     var baseStyles = document.querySelector('style').textContent;
+    var printLabel = DICT[currentLang].btnPrint;
 
-    var docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+    var docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Travel Memo</title>'
       + '<link rel="preconnect" href="https://fonts.googleapis.com">'
       + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
       + '<link href="https://fonts.googleapis.com/css2?family=Bacalar&family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">'
       + '<style>' + baseStyles + '</style>'
       + '<style>'
       + '@page{size:' + wMM + 'mm ' + hMM + 'mm;margin:0;}'
-      + 'html,body{margin:0!important;padding:0!important;background:#fff!important;'
+      + 'html,body{margin:0!important;padding:0!important;background:#e9e7e1!important;'
       + '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}'
       + '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}'
-      + '.sheet{box-shadow:none!important;margin:0!important;width:' + wPx + 'px!important;}'
+      + '.sheet{box-shadow:0 4px 24px rgba(0,0,0,.15)!important;margin:24px auto!important;width:' + wPx + 'px!important;}'
+      + '.pbar{position:sticky;top:0;background:#141414;color:#fff;padding:12px 20px;display:flex;'
+      + 'justify-content:flex-end;gap:10px;font-family:Roboto,Arial,sans-serif;z-index:10;}'
+      + '.pbar button{font:inherit;font-weight:600;font-size:13.5px;background:#fff;color:#141414;'
+      + 'border:none;border-radius:8px;padding:9px 18px;cursor:pointer;}'
+      + '@media print{ .pbar{display:none!important;} body{background:#fff!important;} .sheet{box-shadow:none!important;margin:0!important;} }'
       + '</style>'
-      + '</head><body>' + sheet.outerHTML + '</body></html>';
+      + '</head><body>'
+      + '<div class="pbar"><button onclick="window.print()">' + printLabel + '</button></div>'
+      + sheet.outerHTML
+      + '</body></html>';
 
-    var iframe = document.createElement('iframe');
-    iframe.style.position = 'fixed';
-    iframe.style.left = '-10000px';
-    iframe.style.top = '0';
-    iframe.style.width = wPx + 'px';
-    iframe.style.height = hPx + 'px';
-    iframe.style.border = '0';
-    iframe.title = 'print-frame';
+    printWin.document.open();
+    printWin.document.write(docHtml);
+    printWin.document.close();
 
-    function cleanup(){
-      setTimeout(function(){
-        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-      }, 30000);
-    }
-
-    iframe.onload = function(){
-      var idoc = iframe.contentDocument;
-      var fontsReady = (idoc.fonts && idoc.fonts.ready) ? idoc.fonts.ready : Promise.resolve();
-      fontsReady.then(function(){
-        try{
-          iframe.contentWindow.focus();
-          iframe.contentWindow.print();
-          toast(DICT[currentLang].toastDone);
-        } catch(e){
-          console.error(e);
-          toast(DICT[currentLang].toastErr, true);
-        }
-        cleanup();
-      });
-    };
-
-    document.body.appendChild(iframe);
-    iframe.srcdoc = docHtml;
+    var fontsReady = (printWin.document.fonts && printWin.document.fonts.ready) ? printWin.document.fonts.ready : Promise.resolve();
+    fontsReady.then(function(){
+      try{
+        printWin.focus();
+        printWin.print();
+      } catch(e){
+        console.error(e);
+      }
+      toast(DICT[currentLang].toastDone);
+    });
   });
 
 })();

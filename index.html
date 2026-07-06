@@ -675,7 +675,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button type="button" id="langEs" class="active" data-lang="es">ES</button>
       <button type="button" id="langEn" data-lang="en">EN</button>
     </div>
-    <button class="btn btn-ghost" id="btnPrint" title="Imprimir o guardar como PDF desde el navegador">
+    <button class="btn btn-ghost" id="btnPrint" title="Genera el PDF y abre el diálogo de impresión">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       <span data-i18n="btnPrint">Imprimir</span>
     </button>
@@ -1145,25 +1145,17 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     return base.replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'') + '.pdf';
   }
 
-  // ---- Download PDF ----
-  document.getElementById('btnPdf').addEventListener('click', function(){
-    if (typeof html2canvas === 'undefined' || !window.jspdf){
-      toast(DICT[currentLang].toastNoLib, true);
-      return;
-    }
-    toast(DICT[currentLang].toastGenerating);
+  // ---- Shared PDF builder (used by both Download and Print) ----
+  function buildPdf(){
+    var RENDER_SCALE = 2; // sharpness multiplier
+    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
 
     // Reset display scale so html2canvas captures the sheet at its true, unscaled size
     var prev = scaleWrap.style.transform;
     scaleWrap.style.transform = 'none';
     scaleWrap.style.height = 'auto';
 
-    var RENDER_SCALE = 2; // sharpness multiplier
-
-    // Wait for webfonts to be fully loaded so the canvas capture renders Bacalar/Roboto correctly
-    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
-
-    fontsReady.then(function(){
+    return fontsReady.then(function(){
       return html2canvas(sheet, {
         scale: RENDER_SCALE,
         useCORS: true,
@@ -1183,22 +1175,81 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
         hotfixes: ['px_scaling']
       });
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
-      pdf.save(fileName());
 
       scaleWrap.style.transform = prev;
       fit();
+      return pdf;
+    }).catch(function(err){
+      scaleWrap.style.transform = prev;
+      fit();
+      throw err;
+    });
+  }
+
+  // ---- Download PDF ----
+  document.getElementById('btnPdf').addEventListener('click', function(){
+    if (typeof html2canvas === 'undefined' || !window.jspdf){
+      toast(DICT[currentLang].toastNoLib, true);
+      return;
+    }
+    toast(DICT[currentLang].toastGenerating);
+    buildPdf().then(function(pdf){
+      pdf.save(fileName());
       toast(DICT[currentLang].toastDone);
     }).catch(function(err){
       console.error(err);
-      scaleWrap.style.transform = prev;
-      fit();
       toast(DICT[currentLang].toastErr, true);
     });
   });
 
-  // ---- Print / Save as PDF fallback ----
+  // ---- Print (renders the exact same PDF into a hidden iframe and prints that — no popup windows involved) ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    window.print();
+    if (typeof html2canvas === 'undefined' || !window.jspdf){
+      toast(DICT[currentLang].toastNoLib, true);
+      window.print();
+      return;
+    }
+    toast(DICT[currentLang].toastGenerating);
+    buildPdf().then(function(pdf){
+      var blobUrl = pdf.output('bloburl');
+
+      var iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.left = '-10000px';
+      iframe.style.top = '0';
+      iframe.style.width = '850px';
+      iframe.style.height = '1100px';
+      iframe.style.border = '0';
+      iframe.title = 'print-frame';
+
+      var cleaned = false;
+      function cleanup(){
+        if (cleaned) return;
+        cleaned = true;
+        setTimeout(function(){
+          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+        }, 30000);
+      }
+
+      iframe.onload = function(){
+        try{
+          iframe.contentWindow.focus();
+          iframe.contentWindow.print();
+          toast(DICT[currentLang].toastDone);
+        } catch(e){
+          console.error(e);
+          pdf.save(fileName());
+          toast(DICT[currentLang].toastDone);
+        }
+        cleanup();
+      };
+
+      document.body.appendChild(iframe);
+      iframe.src = blobUrl;
+    }).catch(function(err){
+      console.error(err);
+      toast(DICT[currentLang].toastErr, true);
+    });
   });
 
 })();

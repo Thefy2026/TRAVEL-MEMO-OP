@@ -4,7 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Travel Memo — Generador · Omnicom Production Latam</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bacalar&family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
@@ -723,26 +724,44 @@
 
   // ---- Download PDF ----
   document.getElementById('btnPdf').addEventListener('click', function(){
-    if (typeof html2pdf === 'undefined'){
+    if (typeof html2canvas === 'undefined' || !window.jspdf){
       toast(DICT[currentLang].toastNoLib, true);
       return;
     }
     toast(DICT[currentLang].toastGenerating);
-    // Reset display scale so html2canvas captures at full resolution
+
+    // Reset display scale so html2canvas captures the sheet at its true, unscaled size
     var prev = scaleWrap.style.transform;
     scaleWrap.style.transform = 'none';
     scaleWrap.style.height = 'auto';
 
-    var opt = {
-      margin: 0,
-      filename: fileName(),
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, backgroundColor: '#ffffff', windowWidth: SHEET_W + 100 },
-      jsPDF: { unit: 'px', format: [SHEET_W, sheet.offsetHeight], orientation: 'portrait', hotfixes: ['px_scaling'] },
-      pagebreak: { mode: ['avoid-all'] }
-    };
+    var RENDER_SCALE = 2; // sharpness multiplier
 
-    html2pdf().set(opt).from(sheet).save().then(function(){
+    // Wait for webfonts to be fully loaded so the canvas capture renders Bacalar/Roboto correctly
+    var fontsReady = (document.fonts && document.fonts.ready) ? document.fonts.ready : Promise.resolve();
+
+    fontsReady.then(function(){
+      return html2canvas(sheet, {
+        scale: RENDER_SCALE,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        windowWidth: SHEET_W
+      });
+    }).then(function(canvas){
+      var imgData = canvas.toDataURL('image/jpeg', 0.98);
+      var pdfWidth = canvas.width / RENDER_SCALE;   // back to true CSS px, so 1 PDF unit = 1 px
+      var pdfHeight = canvas.height / RENDER_SCALE;
+
+      var jsPDF = window.jspdf.jsPDF;
+      var pdf = new jsPDF({
+        unit: 'px',
+        format: [pdfWidth, pdfHeight],
+        orientation: pdfWidth >= pdfHeight ? 'landscape' : 'portrait',
+        hotfixes: ['px_scaling']
+      });
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+      pdf.save(fileName());
+
       scaleWrap.style.transform = prev;
       fit();
       toast(DICT[currentLang].toastDone);

@@ -675,7 +675,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button type="button" id="langEs" class="active" data-lang="es">ES</button>
       <button type="button" id="langEn" data-lang="en">EN</button>
     </div>
-    <button class="btn btn-ghost" id="btnPrint" title="Abre el diálogo de impresión del navegador">
+    <button class="btn btn-ghost" id="btnPrint" title="Descarga el PDF directamente">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       <span data-i18n="btnPrint">Imprimir</span>
     </button>
@@ -1214,12 +1214,22 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   });
 
-  // ---- "Imprimir": opens the browser's own native print dialog (Ctrl/Cmd+P equivalent).
-  //      The existing @media print CSS rules already hide the toolbar/editor and show only
-  //      the sheet, so what prints (or gets saved as PDF from the dialog's own "Destino"
-  //      picker) is that clean sheet — no JS-generated PDF involved here at all. ----
+  // ---- "Imprimir": downloads the PDF directly and silently — identical to "Descargar PDF".
+  //      No print dialog, no new tab. (See note above savePdf(): browsers won't let a page
+  //      pick an arbitrary folder with zero clicks — set your browser's default download
+  //      folder to Desktop once, and this lands there automatically every time.) ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    window.print();
+    if (typeof html2canvas === 'undefined' || !window.jspdf){
+      toast(DICT[currentLang].toastNoLib, true);
+      return;
+    }
+    toast(DICT[currentLang].toastGenerating);
+    buildPdf().then(function(pdf){
+      savePdf(pdf);
+    }).catch(function(err){
+      console.error(err);
+      toast(DICT[currentLang].toastErr, true);
+    });
   });
 
 })();

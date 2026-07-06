@@ -1180,17 +1180,28 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       });
     }).then(function(canvas){
       var imgData = canvas.toDataURL('image/jpeg', 0.98);
-      var pdfWidth = canvas.width / RENDER_SCALE;   // back to true CSS px, so 1 PDF unit = 1 px
-      var pdfHeight = canvas.height / RENDER_SCALE;
+      var contentWidth = canvas.width / RENDER_SCALE;   // back to true CSS px
+      var contentHeight = canvas.height / RENDER_SCALE;
+
+      // Fixed A4 page (in px @ ~96dpi) with a safety margin, so the printed result
+      // always fits comfortably within a single physical page — regardless of the
+      // margins a printer or "Guardar como PDF" driver adds on its own.
+      var PAGE_W = 794, PAGE_H = 1123, MARGIN = 24;
+      var maxW = PAGE_W - MARGIN * 2, maxH = PAGE_H - MARGIN * 2;
+      var imgScale = Math.min(maxW / contentWidth, maxH / contentHeight, 1);
+      var pdfWidth = contentWidth * imgScale;
+      var pdfHeight = contentHeight * imgScale;
+      var offsetX = (PAGE_W - pdfWidth) / 2;
+      var offsetY = MARGIN;
 
       var jsPDF = window.jspdf.jsPDF;
       var pdf = new jsPDF({
         unit: 'px',
-        format: [pdfWidth, pdfHeight],
-        orientation: pdfWidth >= pdfHeight ? 'landscape' : 'portrait',
+        format: [PAGE_W, PAGE_H],
+        orientation: 'portrait',
         hotfixes: ['px_scaling']
       });
-      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight, undefined, 'FAST');
+      pdf.addImage(imgData, 'JPEG', offsetX, offsetY, pdfWidth, pdfHeight, undefined, 'FAST');
 
       scaleWrap.style.transform = prev;
       fit();

@@ -1202,54 +1202,77 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   });
 
-  // ---- Print (renders the exact same PDF into a hidden iframe and prints that — no popup windows involved) ----
+  // ---- Print: builds a plain-HTML clone of the memo in a hidden iframe with the page size
+  //      forced to match the document exactly, and colors forced to print, then calls print()
+  //      on that iframe. This does not depend on html2canvas/jsPDF or the browser's PDF viewer,
+  //      so it works reliably everywhere and always yields a single page with the full design. ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    if (typeof html2canvas === 'undefined' || !window.jspdf){
-      toast(DICT[currentLang].toastNoLib, true);
-      window.print();
-      return;
-    }
     toast(DICT[currentLang].toastGenerating);
-    buildPdf().then(function(pdf){
-      var blobUrl = pdf.output('bloburl');
 
-      var iframe = document.createElement('iframe');
-      iframe.style.position = 'fixed';
-      iframe.style.left = '-10000px';
-      iframe.style.top = '0';
-      iframe.style.width = '850px';
-      iframe.style.height = '1100px';
-      iframe.style.border = '0';
-      iframe.title = 'print-frame';
+    // Measure the sheet at its true, unscaled size
+    var prevTransform = scaleWrap.style.transform;
+    var prevHeight = scaleWrap.style.height;
+    scaleWrap.style.transform = 'none';
+    scaleWrap.style.height = 'auto';
+    var rect = sheet.getBoundingClientRect();
+    var wPx = Math.ceil(rect.width);
+    var hPx = Math.ceil(rect.height);
+    scaleWrap.style.transform = prevTransform;
+    scaleWrap.style.height = prevHeight;
 
-      var cleaned = false;
-      function cleanup(){
-        if (cleaned) return;
-        cleaned = true;
-        setTimeout(function(){
-          if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
-        }, 30000);
-      }
+    var mmPerPx = 25.4 / 96;
+    var wMM = (wPx * mmPerPx).toFixed(2);
+    var hMM = (hPx * mmPerPx).toFixed(2);
 
-      iframe.onload = function(){
+    var baseStyles = document.querySelector('style').textContent;
+
+    var docHtml = '<!DOCTYPE html><html><head><meta charset="utf-8">'
+      + '<link rel="preconnect" href="https://fonts.googleapis.com">'
+      + '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+      + '<link href="https://fonts.googleapis.com/css2?family=Bacalar&family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">'
+      + '<style>' + baseStyles + '</style>'
+      + '<style>'
+      + '@page{size:' + wMM + 'mm ' + hMM + 'mm;margin:0;}'
+      + 'html,body{margin:0!important;padding:0!important;background:#fff!important;'
+      + '-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}'
+      + '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}'
+      + '.sheet{box-shadow:none!important;margin:0!important;width:' + wPx + 'px!important;}'
+      + '</style>'
+      + '</head><body>' + sheet.outerHTML + '</body></html>';
+
+    var iframe = document.createElement('iframe');
+    iframe.style.position = 'fixed';
+    iframe.style.left = '-10000px';
+    iframe.style.top = '0';
+    iframe.style.width = wPx + 'px';
+    iframe.style.height = hPx + 'px';
+    iframe.style.border = '0';
+    iframe.title = 'print-frame';
+
+    function cleanup(){
+      setTimeout(function(){
+        if (iframe.parentNode) iframe.parentNode.removeChild(iframe);
+      }, 30000);
+    }
+
+    iframe.onload = function(){
+      var idoc = iframe.contentDocument;
+      var fontsReady = (idoc.fonts && idoc.fonts.ready) ? idoc.fonts.ready : Promise.resolve();
+      fontsReady.then(function(){
         try{
           iframe.contentWindow.focus();
           iframe.contentWindow.print();
           toast(DICT[currentLang].toastDone);
         } catch(e){
           console.error(e);
-          pdf.save(fileName());
-          toast(DICT[currentLang].toastDone);
+          toast(DICT[currentLang].toastErr, true);
         }
         cleanup();
-      };
+      });
+    };
 
-      document.body.appendChild(iframe);
-      iframe.src = blobUrl;
-    }).catch(function(err){
-      console.error(err);
-      toast(DICT[currentLang].toastErr, true);
-    });
+    document.body.appendChild(iframe);
+    iframe.srcdoc = docHtml;
   });
 
 })();

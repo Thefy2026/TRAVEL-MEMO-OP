@@ -940,8 +940,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       lblPhone2:"Teléfono",
       toastGenerating:"Generando PDF…",
       toastDone:"PDF descargado ✓",
-      toastNoLib:"No se pudo cargar el generador de PDF. Usa el botón Imprimir → Guardar como PDF.",
-      toastErr:"Ocurrió un error al generar el PDF. Intenta con Imprimir → Guardar como PDF.",
+      toastNoLib:"No se pudo cargar el generador de PDF. Recarga la página e intenta de nuevo.",
+      toastErr:"Ocurrió un error al generar el PDF. Intenta de nuevo.",
       placeholderDate:"dd/mm/aa",
 
       mBarProject:"NOMBRE DEL PROYECTO:",
@@ -1018,8 +1018,8 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       lblPhone2:"Phone",
       toastGenerating:"Generating PDF…",
       toastDone:"PDF downloaded ✓",
-      toastNoLib:"Couldn't load the PDF engine. Use the Print button → Save as PDF instead.",
-      toastErr:"Something went wrong generating the PDF. Try Print → Save as PDF instead.",
+      toastNoLib:"Couldn't load the PDF engine. Reload the page and try again.",
+      toastErr:"Something went wrong generating the PDF. Please try again.",
       placeholderDate:"dd/mm/yy",
 
       mBarProject:"PROJECT NAME:",
@@ -1186,6 +1186,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   }
 
+  // ---- Shared save routine: uses the native "Save As" picker (File System Access API)
+  //      when the browser supports it, so the person can choose the folder right away.
+  //      Falls back to the normal pdf.save() download on browsers that don't support it
+  //      (Firefox, Safari, mobile). ----
+  // ---- Shared save routine: straightforward download, identical for both buttons.
+  //      (We intentionally don't use the File System Access "Save As" picker here —
+  //      it throws a SecurityError whenever the page is inside an iframe/embedded
+  //      preview, which makes it unreliable. A plain download is the same PDF, every time.) ----
+  function savePdf(pdf){
+    pdf.save(fileName());
+    toast(DICT[currentLang].toastDone);
+  }
+
   // ---- Download PDF ----
   document.getElementById('btnPdf').addEventListener('click', function(){
     if (typeof html2canvas === 'undefined' || !window.jspdf){
@@ -1194,53 +1207,25 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     }
     toast(DICT[currentLang].toastGenerating);
     buildPdf().then(function(pdf){
-      pdf.save(fileName());
-      toast(DICT[currentLang].toastDone);
+      savePdf(pdf);
     }).catch(function(err){
       console.error(err);
       toast(DICT[currentLang].toastErr, true);
     });
   });
 
-  // ---- Print: reuses the exact same buildPdf() pipeline as "Descargar PDF" (already confirmed
-  //      to render correctly), then shows that identical PDF in a new tab so the person can print
-  //      it from the browser's own PDF viewer. The tab is opened synchronously, in direct response
-  //      to the click, so it is never blocked as a popup — only its content is filled in afterward. ----
+  // ---- "Imprimir": now uses the exact same buildPdf() + savePdf() pipeline as "Descargar PDF",
+  //      so both buttons behave identically — no more preview tab, straight to saving/picking a folder. ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    var printWin = window.open('', '_blank');
-    if (!printWin){
-      toast(DICT[currentLang].toastErr, true);
-      return;
-    }
-    var loadingLabel = (currentLang === 'en') ? 'Preparing your document…' : 'Preparando tu documento…';
-    printWin.document.write(
-      '<!doctype html><html><head><meta charset="utf-8"><title>Travel Memo</title>'
-      + '<style>'
-      + 'html,body{height:100%;margin:0;background:#141414;display:flex;align-items:center;justify-content:center;'
-      + 'font-family:-apple-system,Roboto,Arial,sans-serif;}'
-      + '.wrap{text-align:center;color:#fff;}'
-      + '.spin{width:34px;height:34px;border:3px solid #4a4843;border-top-color:#fff;border-radius:50%;'
-      + 'margin:0 auto 16px;animation:sp .8s linear infinite;}'
-      + '@keyframes sp{to{transform:rotate(360deg);}}'
-      + 'p{font-size:14px;color:#cfccc4;margin:0;}'
-      + '</style></head><body><div class="wrap"><div class="spin"></div><p>' + loadingLabel + '</p></div></body></html>'
-    );
-
     if (typeof html2canvas === 'undefined' || !window.jspdf){
-      printWin.close();
       toast(DICT[currentLang].toastNoLib, true);
       return;
     }
-
     toast(DICT[currentLang].toastGenerating);
-
     buildPdf().then(function(pdf){
-      var blobUrl = pdf.output('bloburl');
-      printWin.location.href = blobUrl;
-      toast(DICT[currentLang].toastDone);
+      savePdf(pdf);
     }).catch(function(err){
       console.error(err);
-      printWin.close();
       toast(DICT[currentLang].toastErr, true);
     });
   });

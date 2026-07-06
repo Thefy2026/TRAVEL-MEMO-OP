@@ -1212,7 +1212,19 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       toast(DICT[currentLang].toastErr, true);
       return;
     }
-    printWin.document.write('<!doctype html><html><head><meta charset="utf-8"><title>Travel Memo</title></head><body style="font-family:sans-serif;color:#666;padding:40px;">Generando…</body></html>');
+    var loadingLabel = (currentLang === 'en') ? 'Preparing your document…' : 'Preparando tu documento…';
+    printWin.document.write(
+      '<!doctype html><html><head><meta charset="utf-8"><title>Travel Memo</title>'
+      + '<style>'
+      + 'html,body{height:100%;margin:0;background:#141414;display:flex;align-items:center;justify-content:center;'
+      + 'font-family:-apple-system,Roboto,Arial,sans-serif;}'
+      + '.wrap{text-align:center;color:#fff;}'
+      + '.spin{width:34px;height:34px;border:3px solid #4a4843;border-top-color:#fff;border-radius:50%;'
+      + 'margin:0 auto 16px;animation:sp .8s linear infinite;}'
+      + '@keyframes sp{to{transform:rotate(360deg);}}'
+      + 'p{font-size:14px;color:#cfccc4;margin:0;}'
+      + '</style></head><body><div class="wrap"><div class="spin"></div><p>' + loadingLabel + '</p></div></body></html>'
+    );
 
     if (typeof html2canvas === 'undefined' || !window.jspdf){
       printWin.close();

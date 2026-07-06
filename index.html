@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" id="htmlRoot">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Travel Memo — Generador · Omnicom Production Latam</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bacalar&family=Roboto:wght@400;500;600;700;900&display=swap" rel="stylesheet">
 <style>
   :root{
     --ink:#141414;
@@ -19,6 +22,8 @@
     --ok:#1f6b45;
     --radius:10px;
     --sheet-w:794px;
+    --f-display:'Bacalar','Georgia',serif;
+    --f-body:'Roboto',-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;
     font-synthesis:none;
   }
   *{box-sizing:border-box;}
@@ -26,9 +31,15 @@
   body{
     background:var(--paper);
     color:var(--text);
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    font-family:var(--f-body);
     -webkit-font-smoothing:antialiased;
     line-height:1.45;
+  }
+  .disp{
+    font-family:var(--f-display);
+    font-stretch:expanded;
+    letter-spacing:.05em;
+    font-weight:400;
   }
 
   /* ---------- App chrome ---------- */
@@ -46,11 +57,25 @@
   .brand{display:flex;align-items:center;gap:12px;min-width:0;}
   .brand .mark{width:34px;height:26px;flex:0 0 34px;}
   .brand .mark svg{width:100%;height:100%;display:block;}
-  .brand h1{font-size:14px;letter-spacing:.12em;font-weight:700;margin:0;text-transform:uppercase;}
-  .brand small{display:block;font-size:10.5px;letter-spacing:.22em;color:#b9b6ad;font-weight:600;}
-  .actions{display:flex;gap:10px;flex-wrap:wrap;}
+  .brand h1{font-size:15px;letter-spacing:.14em;font-weight:400;margin:0;text-transform:uppercase;}
+  .brand small{display:block;font-size:10px;letter-spacing:.2em;color:#b9b6ad;font-weight:500;font-family:var(--f-body);text-transform:uppercase;margin-top:2px;}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center;}
+
+  .langtoggle{
+    display:flex;align-items:center;border:1px solid #4a4843;border-radius:8px;overflow:hidden;
+    font-family:var(--f-body);
+  }
+  .langtoggle button{
+    font:inherit;font-size:12.5px;font-weight:700;letter-spacing:.04em;
+    background:transparent;color:#b9b6ad;border:none;padding:8px 13px;cursor:pointer;
+    transition:background .15s ease, color .15s ease;
+  }
+  .langtoggle button.active{background:#fff;color:var(--ink);}
+  .langtoggle button:not(.active):hover{background:#242320;color:#fff;}
+
   .btn{
-    font:inherit;font-weight:600;font-size:13.5px;
+    font-family:var(--f-body);
+    font-weight:600;font-size:13.5px;
     border:1px solid transparent;border-radius:8px;
     padding:9px 16px;cursor:pointer;display:inline-flex;align-items:center;gap:8px;
     transition:transform .06s ease, background .15s ease, opacity .15s ease;
@@ -85,13 +110,15 @@
     overflow:auto;
   }
 
-  .lead{font-size:13px;color:var(--muted);margin:0 0 18px;}
+  .lead{font-size:13px;color:var(--muted);margin:0 0 20px;font-family:var(--f-body);}
   .lead b{color:var(--text);font-weight:600;}
 
-  fieldset{border:none;margin:0 0 22px;padding:0;}
+  fieldset{border:none;margin:0 0 24px;padding:0;}
   legend{
-    font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
-    color:var(--accent);padding:0;margin:0 0 12px;
+    font-family:var(--f-display);
+    font-stretch:expanded;
+    font-size:14px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--accent);padding:0;margin:0 0 13px;
     display:flex;align-items:center;gap:9px;width:100%;
   }
   legend::after{content:"";flex:1;height:1px;background:var(--line);}
@@ -99,9 +126,9 @@
   .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;}
   .grid .full{grid-column:1 / -1;}
   .field{display:flex;flex-direction:column;gap:5px;min-width:0;}
-  .field label{font-size:11.5px;font-weight:600;color:var(--muted);letter-spacing:.02em;}
+  .field label{font-family:var(--f-body);font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.03em;text-transform:uppercase;}
   .field input{
-    font:inherit;font-size:13.5px;color:var(--text);
+    font-family:var(--f-body);font-size:13.5px;color:var(--text);
     padding:9px 11px;border:1px solid var(--line-strong);border-radius:7px;
     background:#fff;width:100%;transition:border .12s ease, box-shadow .12s ease;
   }
@@ -109,22 +136,23 @@
   .field input::placeholder{color:#b3afa5;}
 
   details.contacts summary{
-    cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;
+    cursor:pointer;font-family:var(--f-display);font-stretch:expanded;
+    font-size:13px;font-weight:400;letter-spacing:.08em;text-transform:uppercase;
     color:var(--accent);list-style:none;display:flex;align-items:center;gap:8px;margin-bottom:6px;
   }
   details.contacts summary::-webkit-details-marker{display:none;}
-  details.contacts summary::before{content:"▸";font-size:10px;transition:transform .15s ease;}
+  details.contacts summary::before{content:"▸";font-size:10px;transition:transform .15s ease;font-family:var(--f-body);}
   details.contacts[open] summary::before{transform:rotate(90deg);}
 
-  .hint{font-size:11px;color:var(--muted);margin:-4px 0 4px;}
+  .hint{font-family:var(--f-body);font-size:11px;color:var(--muted);margin:-4px 0 4px;}
 
-  /* ---------- The memo sheet (must mirror the official template: strict B/W, Arial) ---------- */
+  /* ---------- The memo sheet ---------- */
   .sheet-scale{transform-origin:top center;}
   .sheet{
     width:var(--sheet-w);
     background:#fff;
     color:#000;
-    font-family:Arial,Helvetica,"Liberation Sans",sans-serif;
+    font-family:var(--f-body);
     padding:46px 50px 40px;
     box-shadow:0 8px 40px rgba(20,18,14,.14);
     font-size:11px;
@@ -135,22 +163,24 @@
     display:flex;align-items:center;gap:9px;padding:0 18px 0 4px;
   }
   .sheet .m-logo .mk{width:36px;height:27px;flex:0 0 36px;display:block;}
-  .sheet .m-logo .lt{font-weight:800;font-size:12px;line-height:1.05;letter-spacing:.01em;}
+  .sheet .m-logo .lt{font-family:var(--f-body);font-weight:800;font-size:12px;line-height:1.05;letter-spacing:.01em;}
   .sheet .m-banner{
     flex:1;background:#000;color:#fff;display:flex;align-items:center;justify-content:center;
-    font-size:24px;font-weight:800;letter-spacing:.02em;
+    font-family:var(--f-display);font-stretch:expanded;font-weight:400;
+    font-size:26px;letter-spacing:.09em;
   }
 
   .sheet .m-bar{
     background:#000;color:#fff;font-weight:700;font-size:11px;
-    padding:6px 12px;margin-bottom:8px;letter-spacing:.02em;
+    padding:6px 12px;margin-bottom:8px;letter-spacing:.03em;
   }
   .sheet .m-bar span{font-weight:400;}
 
   .sheet .m-section{
-    text-align:center;font-weight:700;font-size:11.5px;letter-spacing:.03em;
+    font-family:var(--f-display);font-stretch:expanded;
+    text-align:center;font-weight:400;font-size:13.5px;letter-spacing:.06em;
     border-top:2px solid #000;border-bottom:2px solid #000;
-    padding:5px 0;margin:22px 0 0;
+    padding:6px 0;margin:22px 0 0;
   }
   .sheet .m-block{display:flex;gap:0;border-bottom:1px solid #000;padding:14px 0;}
   .sheet .m-ico{flex:0 0 128px;display:flex;align-items:center;gap:12px;padding-left:6px;}
@@ -159,26 +189,28 @@
   .sheet .m-rows{flex:1;}
   .sheet .m-row{display:grid;grid-template-columns:180px 1fr;padding:1.5px 0;}
   .sheet .m-row .k{font-weight:700;}
-  .sheet .m-row .v{color:#000;}
+  .sheet .m-row .v{color:#000;font-weight:400;}
   .sheet .m-row .v a{color:#0563c1;text-decoration:underline;word-break:break-word;}
   .sheet .m-sep{height:8px;}
 
   .sheet .m-note{font-size:10px;font-style:italic;margin:8px 0 0;}
 
   .sheet .m-contacts-bar{
-    background:#000;color:#fff;text-align:center;font-weight:700;font-size:11px;
-    padding:8px 12px;margin-top:34px;line-height:1.4;
+    font-family:var(--f-display);font-stretch:expanded;
+    background:#000;color:#fff;text-align:center;font-weight:400;font-size:12.5px;letter-spacing:.05em;
+    padding:9px 12px;margin-top:34px;line-height:1.5;
   }
   .sheet .m-contacts{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;padding:16px 4px 0;}
-  .sheet .m-contact .role{font-weight:700;font-size:10.5px;letter-spacing:.02em;margin-bottom:8px;}
+  .sheet .m-contact .role{font-weight:700;font-size:10.5px;letter-spacing:.03em;margin-bottom:8px;}
   .sheet .m-contact .name{margin-bottom:3px;}
   .sheet .m-contact .mail{color:#0563c1;text-decoration:underline;word-break:break-word;margin-bottom:3px;}
-  .sheet .m-foot{text-align:center;font-size:9px;color:#000;margin-top:46px;}
+  .sheet .m-foot{text-align:center;font-size:9px;color:#000;margin-top:46px;letter-spacing:.02em;}
 
   /* ---------- Toast ---------- */
   #toast{
     position:fixed;bottom:22px;left:50%;transform:translateX(-50%) translateY(20px);
     background:var(--ink);color:#fff;padding:11px 18px;border-radius:9px;font-size:13px;font-weight:500;
+    font-family:var(--f-body);
     opacity:0;pointer-events:none;transition:.25s ease;z-index:50;box-shadow:0 6px 24px rgba(0,0,0,.25);
   }
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -210,18 +242,22 @@
       </svg>
     </div>
     <div>
-      <h1>Travel Memo</h1>
+      <h1 class="disp">Travel Memo</h1>
       <small>Omnicom Production Latam</small>
     </div>
   </div>
   <div class="actions">
+    <div class="langtoggle" role="group" aria-label="Idioma / Language">
+      <button type="button" id="langEs" class="active" data-lang="es">ES</button>
+      <button type="button" id="langEn" data-lang="en">EN</button>
+    </div>
     <button class="btn btn-ghost" id="btnPrint" title="Imprimir o guardar como PDF desde el navegador">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-      Imprimir
+      <span data-i18n="btnPrint">Imprimir</span>
     </button>
     <button class="btn btn-primary" id="btnPdf">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 21h16"/></svg>
-      Descargar PDF
+      <span data-i18n="btnPdf">Descargar PDF</span>
     </button>
   </div>
 </header>
@@ -230,88 +266,88 @@
 
   <!-- ========== EDITOR ========== -->
   <section class="editor">
-    <p class="lead">Completa los campos del viaje. El documento de la derecha se actualiza en vivo y conserva el formato exacto de la plantilla. Al terminar, pulsa <b>Descargar PDF</b>.</p>
+    <p class="lead" data-i18n="lead">Completa los campos del viaje. El documento de la derecha se actualiza en vivo y conserva el formato exacto de la plantilla. Al terminar, pulsa <b>Descargar PDF</b>.</p>
 
     <fieldset>
-      <legend>Datos generales</legend>
+      <legend data-i18n="legGeneral">Datos generales</legend>
       <div class="grid">
-        <div class="field full"><label>Project name</label><input data-bind="projectName" value="HOUSE OP"></div>
-        <div class="field full"><label>Trip purpose</label><input data-bind="tripPurpose" value="CANNES"></div>
-        <div class="field full"><label>Traveler</label><input data-bind="traveler" value="JUANITA RODRIGUEZ ARANGO"></div>
+        <div class="field full"><label data-i18n="lblProject">Project name</label><input data-bind="projectName" value="HOUSE OP"></div>
+        <div class="field full"><label data-i18n="lblPurpose">Trip purpose</label><input data-bind="tripPurpose" value="CANNES"></div>
+        <div class="field full"><label data-i18n="lblTraveler">Traveler</label><input data-bind="traveler" value="JUANITA RODRIGUEZ ARANGO"></div>
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Vuelo — Inbound (Departure)</legend>
+      <legend data-i18n="legInbound">Vuelo — Inbound (Departure)</legend>
       <div class="grid">
-        <div class="field full"><label>Departure (fecha)</label><input data-bind="depDate" value="20/06/26" placeholder="dd/mm/aa"></div>
-        <div class="field"><label>Flight #</label><input data-bind="depFlight" value="326"></div>
-        <div class="field"><label>Time</label><input data-bind="depTime" value="7:20:00 AM"></div>
+        <div class="field full"><label data-i18n="lblDepDate">Departure (fecha)</label><input data-bind="depDate" value="20/06/26" placeholder="dd/mm/aa"></div>
+        <div class="field"><label data-i18n="lblFlight">Flight #</label><input data-bind="depFlight" value="326"></div>
+        <div class="field"><label data-i18n="lblTime">Time</label><input data-bind="depTime" value="7:20:00 AM"></div>
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Vuelo — Outbound (Arrival)</legend>
+      <legend data-i18n="legOutbound">Vuelo — Outbound (Arrival)</legend>
       <div class="grid">
-        <div class="field full"><label>Arrival (fecha)</label><input data-bind="arrDate" value="20/06/26" placeholder="dd/mm/aa"></div>
-        <div class="field"><label>Flight #</label><input data-bind="arrFlight" value="326"></div>
-        <div class="field"><label>Time</label><input data-bind="arrTime" value="10:25:00 AM"></div>
+        <div class="field full"><label data-i18n="lblArrDate">Arrival (fecha)</label><input data-bind="arrDate" value="20/06/26" placeholder="dd/mm/aa"></div>
+        <div class="field"><label data-i18n="lblFlight">Flight #</label><input data-bind="arrFlight" value="326"></div>
+        <div class="field"><label data-i18n="lblTime">Time</label><input data-bind="arrTime" value="10:25:00 AM"></div>
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Hotel</legend>
+      <legend data-i18n="legHotel">Hotel</legend>
       <div class="grid">
-        <div class="field full"><label>Hotel</label><input data-bind="hotelName" value="Studio Deluxe Miramar"></div>
-        <div class="field full"><label>Address &amp; location</label><input data-bind="hotelAddress" value="65 boulevard La Croisette, Centro de Cannes, 06400 Cannes, Francia"></div>
-        <div class="field full"><label>Check in</label><input data-bind="checkIn" value="20/06/2026 - 3:00pm"></div>
-        <div class="field full"><label>Check out</label><input data-bind="checkOut" value="25/06/2026 11:00am"></div>
+        <div class="field full"><label data-i18n="lblHotel">Hotel</label><input data-bind="hotelName" value="Studio Deluxe Miramar"></div>
+        <div class="field full"><label data-i18n="lblAddress">Address &amp; location</label><input data-bind="hotelAddress" value="65 boulevard La Croisette, Centro de Cannes, 06400 Cannes, Francia"></div>
+        <div class="field full"><label data-i18n="lblCheckIn">Check in</label><input data-bind="checkIn" value="20/06/2026 - 3:00pm"></div>
+        <div class="field full"><label data-i18n="lblCheckOut">Check out</label><input data-bind="checkOut" value="25/06/2026 11:00am"></div>
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Per diem</legend>
+      <legend data-i18n="legPerdiem">Per diem</legend>
       <div class="grid">
-        <div class="field"><label>Perdiem</label><input data-bind="perDiem" value="N/A"></div>
-        <div class="field"><label>Days</label><input data-bind="perDiemDays" value="N/A"></div>
-        <div class="field full"><label>Total</label><input data-bind="perDiemTotal" value="N/A"></div>
+        <div class="field"><label data-i18n="lblPerdiem">Perdiem</label><input data-bind="perDiem" value="N/A"></div>
+        <div class="field"><label data-i18n="lblDays">Days</label><input data-bind="perDiemDays" value="N/A"></div>
+        <div class="field full"><label data-i18n="lblTotal">Total</label><input data-bind="perDiemTotal" value="N/A"></div>
       </div>
     </fieldset>
 
     <fieldset>
-      <legend>Pickup — Inbound</legend>
+      <legend data-i18n="legPickup">Pickup — Inbound</legend>
       <div class="grid">
-        <div class="field full"><label>Pickup</label><input data-bind="pickup" value="N/A"></div>
-        <div class="field"><label>Hour</label><input data-bind="pickupHour" value="N/A"></div>
-        <div class="field"><label>Destination</label><input data-bind="pickupDest" value="N/A"></div>
-        <div class="field full"><label>Driver</label><input data-bind="driver" value="N/A"></div>
-        <div class="field"><label>Phone</label><input data-bind="driverPhone" value="N/A"></div>
-        <div class="field"><label>Plate</label><input data-bind="plate" value="N/A"></div>
+        <div class="field full"><label data-i18n="lblPickup">Pickup</label><input data-bind="pickup" value="N/A"></div>
+        <div class="field"><label data-i18n="lblHour">Hour</label><input data-bind="pickupHour" value="N/A"></div>
+        <div class="field"><label data-i18n="lblDestination">Destination</label><input data-bind="pickupDest" value="N/A"></div>
+        <div class="field full"><label data-i18n="lblDriver">Driver</label><input data-bind="driver" value="N/A"></div>
+        <div class="field"><label data-i18n="lblPhone">Phone</label><input data-bind="driverPhone" value="N/A"></div>
+        <div class="field"><label data-i18n="lblPlate">Plate</label><input data-bind="plate" value="N/A"></div>
       </div>
     </fieldset>
 
     <fieldset>
       <details class="contacts">
-        <summary>Contactos (editar si cambian)</summary>
-        <p class="hint">Vienen precargados con los datos oficiales de la plantilla. Ábrelos solo si necesitas cambiarlos.</p>
+        <summary data-i18n="legContacts">Contactos (editar si cambian)</summary>
+        <p class="hint" data-i18n="hintContacts">Vienen precargados con los datos oficiales de la plantilla. Ábrelos solo si necesitas cambiarlos.</p>
         <div class="grid">
-          <div class="field full"><label>Travel coordinator 1 — Nombre</label><input data-bind="tc1Name" value="Adelaida Cano"></div>
-          <div class="field"><label>Email</label><input data-bind="tc1Email" value="adelaida.cano@omc.com"></div>
-          <div class="field"><label>Teléfono</label><input data-bind="tc1Phone" value="3214929905"></div>
+          <div class="field full"><label data-i18n="lblTc1Name">Travel coordinator 1 — Nombre</label><input data-bind="tc1Name" value="Adelaida Cano"></div>
+          <div class="field"><label data-i18n="lblEmail">Email</label><input data-bind="tc1Email" value="adelaida.cano@omc.com"></div>
+          <div class="field"><label data-i18n="lblPhone2">Teléfono</label><input data-bind="tc1Phone" value="3214929905"></div>
 
-          <div class="field full"><label>Travel coordinator 2 — Nombre</label><input data-bind="tc2Name" value="Alejandra Diaz"></div>
-          <div class="field"><label>Email</label><input data-bind="tc2Email" value="cdiaz@omc.com"></div>
-          <div class="field"><label>Teléfono</label><input data-bind="tc2Phone" value="(+57) 3123142452"></div>
+          <div class="field full"><label data-i18n="lblTc2Name">Travel coordinator 2 — Nombre</label><input data-bind="tc2Name" value="Alejandra Diaz"></div>
+          <div class="field"><label data-i18n="lblEmail">Email</label><input data-bind="tc2Email" value="cdiaz@omc.com"></div>
+          <div class="field"><label data-i18n="lblPhone2">Teléfono</label><input data-bind="tc2Phone" value="(+57) 3123142452"></div>
 
-          <div class="field full"><label>Travel emergency — Nombre</label><input data-bind="teName" value="Emergencias BCD"></div>
-          <div class="field"><label>Email</label><input data-bind="teEmail" value="servicio724@bcdtravel.com.co"></div>
-          <div class="field"><label>Teléfono</label><input data-bind="tePhone" value="(+57) 6015899440"></div>
+          <div class="field full"><label data-i18n="lblTeName">Travel emergency — Nombre</label><input data-bind="teName" value="Emergencias BCD"></div>
+          <div class="field"><label data-i18n="lblEmail">Email</label><input data-bind="teEmail" value="servicio724@bcdtravel.com.co"></div>
+          <div class="field"><label data-i18n="lblPhone2">Teléfono</label><input data-bind="tePhone" value="(+57) 6015899440"></div>
         </div>
       </details>
     </fieldset>
   </section>
 
-  <!-- ========== PREVIEW ========== -->
+  <!-- ========== PREVIEW (official template — always in English, per corporate standard) ========== -->
   <div class="preview-wrap">
     <div class="sheet-scale" id="sheetScale">
       <div class="sheet" id="sheet">
@@ -326,107 +362,107 @@
           <div class="m-banner">TRAVEL MEMO</div>
         </div>
 
-        <div class="m-bar">PROJECT NAME: <span data-out="projectName"></span></div>
-        <div class="m-bar">TRIP PURPOSE: <span data-out="tripPurpose"></span></div>
-        <div class="m-bar">TRAVELER: <span data-out="traveler"></span></div>
+        <div class="m-bar"><span data-i18n="mBarProject">PROJECT NAME:</span> <span data-out="projectName"></span></div>
+        <div class="m-bar"><span data-i18n="mBarPurpose">TRIP PURPOSE:</span> <span data-out="tripPurpose"></span></div>
+        <div class="m-bar"><span data-i18n="mBarTraveler">TRAVELER:</span> <span data-out="traveler"></span></div>
 
-        <div class="m-section">FLIGHT INFORMATION</div>
+        <div class="m-section" data-i18n="secFlight">FLIGHT INFORMATION</div>
 
         <div class="m-block">
           <div class="m-ico">
             <svg viewBox="0 0 64 48" fill="#000"><path d="M2 40h60v3H2zM10 30l6-2 12-8 16-11c3-2 7-2 9 0 1 2 0 4-3 6L34 24l-6 10-5 1 3-8-9 3-4 4-4-1z"/></svg>
-            <span class="role">INBOUND</span>
+            <span class="role" data-i18n="roleInbound">INBOUND</span>
           </div>
           <div class="m-rows">
-            <div class="m-row"><span class="k">DEPARTURE</span><span class="v" data-out="depDate"></span></div>
-            <div class="m-row"><span class="k">FLIGHT #</span><span class="v" data-out="depFlight"></span></div>
-            <div class="m-row"><span class="k">TIME</span><span class="v" data-out="depTime"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kDeparture">DEPARTURE</span><span class="v" data-out="depDate"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kFlightNum">FLIGHT #</span><span class="v" data-out="depFlight"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kTime">TIME</span><span class="v" data-out="depTime"></span></div>
           </div>
         </div>
 
         <div class="m-block">
           <div class="m-ico">
             <svg viewBox="0 0 64 48" fill="#000"><path d="M2 40h60v3H2zM8 20c-2-2-2-5 0-7 2-1 4-1 6 1l9 12 14 5 18 4c4 1 5 4 3 6-1 2-4 2-7 1L20 32 8 28z"/></svg>
-            <span class="role">OUTBOUND</span>
+            <span class="role" data-i18n="roleOutbound">OUTBOUND</span>
           </div>
           <div class="m-rows">
-            <div class="m-row"><span class="k">ARRIVAL</span><span class="v" data-out="arrDate"></span></div>
-            <div class="m-row"><span class="k">FLIGHT #</span><span class="v" data-out="arrFlight"></span></div>
-            <div class="m-row"><span class="k">TIME</span><span class="v" data-out="arrTime"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kArrival">ARRIVAL</span><span class="v" data-out="arrDate"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kFlightNum">FLIGHT #</span><span class="v" data-out="arrFlight"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kTime">TIME</span><span class="v" data-out="arrTime"></span></div>
           </div>
         </div>
 
-        <div class="m-section">HOTEL INFORMATION</div>
+        <div class="m-section" data-i18n="secHotel">HOTEL INFORMATION</div>
 
         <div class="m-block">
           <div class="m-ico">
             <svg viewBox="0 0 64 48" fill="#000"><path d="M4 14h4v14h48v-8c0-4-3-7-7-7H30v15H8V14H4v26h4v-6h48v6h4V20c0-6-4-10-10-10H26v10H12v-6z"/></svg>
           </div>
           <div class="m-rows">
-            <div class="m-row"><span class="k">HOTEL:</span><span class="v" data-out="hotelName"></span></div>
-            <div class="m-row"><span class="k">ADRESS &amp; LOCATION:</span><span class="v"><a data-out="hotelAddress" href="#"></a></span></div>
+            <div class="m-row"><span class="k" data-i18n="kHotel">HOTEL:</span><span class="v" data-out="hotelName"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kAddress">ADRESS &amp; LOCATION:</span><span class="v"><a data-out="hotelAddress" href="#"></a></span></div>
             <div class="m-sep"></div>
-            <div class="m-row"><span class="k">CHECK IN:</span><span class="v" data-out="checkIn"></span></div>
-            <div class="m-row"><span class="k">CHECK OUT:</span><span class="v" data-out="checkOut"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kCheckIn">CHECK IN:</span><span class="v" data-out="checkIn"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kCheckOut">CHECK OUT:</span><span class="v" data-out="checkOut"></span></div>
           </div>
         </div>
-        <p class="m-note">*En el hotel solicitaran dejar una tarjeta de crédito en caso de accidentes, por favor relacione la de OP.</p>
+        <p class="m-note" data-i18n="noteHotel">*En el hotel solicitaran dejar una tarjeta de crédito en caso de accidentes, por favor relacione la de OP.</p>
 
-        <div class="m-section">PER DIEM INFORMATION</div>
+        <div class="m-section" data-i18n="secPerdiem">PER DIEM INFORMATION</div>
 
         <div class="m-block">
           <div class="m-ico">
             <svg viewBox="0 0 64 48" fill="none" stroke="#000" stroke-width="3"><rect x="6" y="14" width="46" height="28" rx="4"/><path d="M52 22h6v12h-6"/><circle cx="46" cy="28" r="3" fill="#000"/><path d="M14 14c0-6 6-8 14-8" stroke-width="3"/></svg>
-            <span class="role">PER DIEM</span>
+            <span class="role" data-i18n="rolePerdiem">PER DIEM</span>
           </div>
           <div class="m-rows">
             <div class="m-row"><span class="k">PERDIEM</span><span class="v" data-out="perDiem"></span></div>
-            <div class="m-row"><span class="k">DAYS</span><span class="v" data-out="perDiemDays"></span></div>
-            <div class="m-row"><span class="k">TOTAL</span><span class="v" data-out="perDiemTotal"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kDays">DAYS</span><span class="v" data-out="perDiemDays"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kTotal">TOTAL</span><span class="v" data-out="perDiemTotal"></span></div>
           </div>
         </div>
 
-        <div class="m-section">PICKUP INFORMATION</div>
+        <div class="m-section" data-i18n="secPickup">PICKUP INFORMATION</div>
 
         <div class="m-block" style="border-bottom:none;">
           <div class="m-ico">
             <svg viewBox="0 0 64 48" fill="#000"><path d="M8 34c-2 0-4-2-4-4v-4l6-2 4-9c1-2 3-3 5-3h26c2 0 4 1 5 3l4 9 6 2v4c0 2-2 4-4 4h-2a6 6 0 01-12 0H22a6 6 0 01-12 0zm8-16l-3 6h38l-3-6H16z"/><circle cx="16" cy="34" r="3" fill="#fff"/><circle cx="48" cy="34" r="3" fill="#fff"/></svg>
-            <span class="role">PICKUP<br>INBOUND</span>
+            <span class="role" data-i18n="rolePickupInbound">PICKUP<br>INBOUND</span>
           </div>
           <div class="m-rows">
-            <div class="m-row"><span class="k">PICKUP</span><span class="v" data-out="pickup"></span></div>
-            <div class="m-row"><span class="k">HOUR</span><span class="v" data-out="pickupHour"></span></div>
-            <div class="m-row"><span class="k">DESTINATION</span><span class="v" data-out="pickupDest"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kPickup">PICKUP</span><span class="v" data-out="pickup"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kHour">HOUR</span><span class="v" data-out="pickupHour"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kDestination">DESTINATION</span><span class="v" data-out="pickupDest"></span></div>
             <div class="m-sep"></div>
-            <div class="m-row"><span class="k">DRIVER</span><span class="v" data-out="driver"></span></div>
-            <div class="m-row"><span class="k">PHONE</span><span class="v" data-out="driverPhone"></span></div>
-            <div class="m-row"><span class="k">PLATE</span><span class="v" data-out="plate"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kDriver">DRIVER</span><span class="v" data-out="driver"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kPhone">PHONE</span><span class="v" data-out="driverPhone"></span></div>
+            <div class="m-row"><span class="k" data-i18n="kPlate">PLATE</span><span class="v" data-out="plate"></span></div>
           </div>
         </div>
 
-        <div class="m-contacts-bar">OMNICOM PRODUCTION LATAM S.A.S<br>CONTACTS</div>
+        <div class="m-contacts-bar" data-i18n="contactsBar">OMNICOM PRODUCTION LATAM S.A.S<br>CONTACTS</div>
         <div class="m-contacts">
           <div class="m-contact">
-            <div class="role">TRAVEL COORDINATOR</div>
-            <div class="name">NAME: <span data-out="tc1Name"></span></div>
+            <div class="role" data-i18n="contactRoleCoord">TRAVEL COORDINATOR</div>
+            <div class="name"><span data-i18n="contactNameLabel">NAME:</span> <span data-out="tc1Name"></span></div>
             <div class="mail"><span data-out="tc1Email"></span></div>
-            <div class="phone">PHONE # <span data-out="tc1Phone"></span></div>
+            <div class="phone"><span data-i18n="contactPhoneLabel">PHONE #</span> <span data-out="tc1Phone"></span></div>
           </div>
           <div class="m-contact">
-            <div class="role">TRAVEL COORDINATOR</div>
-            <div class="name">NAME: <span data-out="tc2Name"></span></div>
+            <div class="role" data-i18n="contactRoleCoord">TRAVEL COORDINATOR</div>
+            <div class="name"><span data-i18n="contactNameLabel">NAME:</span> <span data-out="tc2Name"></span></div>
             <div class="mail"><span data-out="tc2Email"></span></div>
-            <div class="phone">PHONE # <span data-out="tc2Phone"></span></div>
+            <div class="phone"><span data-i18n="contactPhoneLabel">PHONE #</span> <span data-out="tc2Phone"></span></div>
           </div>
           <div class="m-contact">
-            <div class="role">TRAVEL EMERGENCY</div>
+            <div class="role" data-i18n="contactRoleEmergency">TRAVEL EMERGENCY</div>
             <div class="name"><span data-out="teName"></span></div>
             <div class="mail"><span data-out="teEmail"></span></div>
-            <div class="phone">PHONE # <span data-out="tePhone"></span></div>
+            <div class="phone"><span data-i18n="contactPhoneLabel">PHONE #</span> <span data-out="tePhone"></span></div>
           </div>
         </div>
 
-        <div class="m-foot">Confidential - Not for Public Consumption or Distribution</div>
+        <div class="m-foot" data-i18n="footNote">Confidential - Not for Public Consumption or Distribution</div>
 
       </div>
     </div>
@@ -438,6 +474,197 @@
 <script>
 (function(){
   "use strict";
+
+  // ---- i18n dictionary (tool interface only — the printed memo keeps the official English template) ----
+  var DICT = {
+    es:{
+      btnPrint:"Imprimir",
+      btnPdf:"Descargar PDF",
+      lead:'Completa los campos del viaje. El documento de la derecha se actualiza en vivo y conserva el formato exacto de la plantilla. Al terminar, pulsa <b>Descargar PDF</b>.',
+      legGeneral:"Datos generales",
+      lblProject:"Project name",
+      lblPurpose:"Trip purpose",
+      lblTraveler:"Traveler",
+      legInbound:"Vuelo — Inbound (Departure)",
+      lblDepDate:"Departure (fecha)",
+      lblFlight:"Flight #",
+      lblTime:"Time",
+      legOutbound:"Vuelo — Outbound (Arrival)",
+      lblArrDate:"Arrival (fecha)",
+      legHotel:"Hotel",
+      lblHotel:"Hotel",
+      lblAddress:"Dirección y ubicación",
+      lblCheckIn:"Check in",
+      lblCheckOut:"Check out",
+      legPerdiem:"Per diem",
+      lblPerdiem:"Perdiem",
+      lblDays:"Días",
+      lblTotal:"Total",
+      legPickup:"Pickup — Inbound",
+      lblPickup:"Pickup",
+      lblHour:"Hora",
+      lblDestination:"Destino",
+      lblDriver:"Conductor",
+      lblPhone:"Teléfono",
+      lblPlate:"Placa",
+      legContacts:"Contactos (editar si cambian)",
+      hintContacts:"Vienen precargados con los datos oficiales de la plantilla. Ábrelos solo si necesitas cambiarlos.",
+      lblTc1Name:"Travel coordinator 1 — Nombre",
+      lblTc2Name:"Travel coordinator 2 — Nombre",
+      lblTeName:"Travel emergency — Nombre",
+      lblEmail:"Email",
+      lblPhone2:"Teléfono",
+      toastGenerating:"Generando PDF…",
+      toastDone:"PDF descargado ✓",
+      toastNoLib:"No se pudo cargar el generador de PDF. Usa el botón Imprimir → Guardar como PDF.",
+      toastErr:"Ocurrió un error al generar el PDF. Intenta con Imprimir → Guardar como PDF.",
+      placeholderDate:"dd/mm/aa",
+
+      mBarProject:"NOMBRE DEL PROYECTO:",
+      mBarPurpose:"PROPÓSITO DEL VIAJE:",
+      mBarTraveler:"VIAJERO:",
+      secFlight:"INFORMACIÓN DE VUELO",
+      secHotel:"INFORMACIÓN DE HOTEL",
+      secPerdiem:"INFORMACIÓN DE VIÁTICOS",
+      secPickup:"INFORMACIÓN DE TRANSPORTE",
+      roleInbound:"ENTRADA",
+      roleOutbound:"SALIDA",
+      rolePerdiem:"VIÁTICOS",
+      rolePickupInbound:"RECOGIDA<br>ENTRADA",
+      kDeparture:"SALIDA",
+      kArrival:"LLEGADA",
+      kFlightNum:"VUELO #",
+      kTime:"HORA",
+      kHotel:"HOTEL:",
+      kAddress:"DIRECCIÓN Y UBICACIÓN:",
+      kCheckIn:"CHECK IN:",
+      kCheckOut:"CHECK OUT:",
+      noteHotel:"*En el hotel solicitaran dejar una tarjeta de crédito en caso de accidentes, por favor relacione la de OP.",
+      kDays:"DÍAS",
+      kTotal:"TOTAL",
+      kPickup:"RECOGIDA",
+      kHour:"HORA",
+      kDestination:"DESTINO",
+      kDriver:"CONDUCTOR",
+      kPhone:"TELÉFONO",
+      kPlate:"PLACA",
+      contactsBar:"OMNICOM PRODUCTION LATAM S.A.S<br>CONTACTOS",
+      contactRoleCoord:"COORDINADOR DE VIAJES",
+      contactRoleEmergency:"EMERGENCIA DE VIAJE",
+      contactNameLabel:"NOMBRE:",
+      contactPhoneLabel:"TELÉFONO #",
+      footNote:"Confidencial - No apto para consumo público o distribución"
+    },
+    en:{
+      btnPrint:"Print",
+      btnPdf:"Download PDF",
+      lead:'Fill in the trip details. The document on the right updates live and keeps the exact template format. When you\'re done, press <b>Download PDF</b>.',
+      legGeneral:"General information",
+      lblProject:"Project name",
+      lblPurpose:"Trip purpose",
+      lblTraveler:"Traveler",
+      legInbound:"Flight — Inbound (Departure)",
+      lblDepDate:"Departure (date)",
+      lblFlight:"Flight #",
+      lblTime:"Time",
+      legOutbound:"Flight — Outbound (Arrival)",
+      lblArrDate:"Arrival (date)",
+      legHotel:"Hotel",
+      lblHotel:"Hotel",
+      lblAddress:"Address & location",
+      lblCheckIn:"Check in",
+      lblCheckOut:"Check out",
+      legPerdiem:"Per diem",
+      lblPerdiem:"Perdiem",
+      lblDays:"Days",
+      lblTotal:"Total",
+      legPickup:"Pickup — Inbound",
+      lblPickup:"Pickup",
+      lblHour:"Hour",
+      lblDestination:"Destination",
+      lblDriver:"Driver",
+      lblPhone:"Phone",
+      lblPlate:"Plate",
+      legContacts:"Contacts (edit only if they change)",
+      hintContacts:"Preloaded with the template's official contacts. Only open this if you need to change them.",
+      lblTc1Name:"Travel coordinator 1 — Name",
+      lblTc2Name:"Travel coordinator 2 — Name",
+      lblTeName:"Travel emergency — Name",
+      lblEmail:"Email",
+      lblPhone2:"Phone",
+      toastGenerating:"Generating PDF…",
+      toastDone:"PDF downloaded ✓",
+      toastNoLib:"Couldn't load the PDF engine. Use the Print button → Save as PDF instead.",
+      toastErr:"Something went wrong generating the PDF. Try Print → Save as PDF instead.",
+      placeholderDate:"dd/mm/yy",
+
+      mBarProject:"PROJECT NAME:",
+      mBarPurpose:"TRIP PURPOSE:",
+      mBarTraveler:"TRAVELER:",
+      secFlight:"FLIGHT INFORMATION",
+      secHotel:"HOTEL INFORMATION",
+      secPerdiem:"PER DIEM INFORMATION",
+      secPickup:"PICKUP INFORMATION",
+      roleInbound:"INBOUND",
+      roleOutbound:"OUTBOUND",
+      rolePerdiem:"PER DIEM",
+      rolePickupInbound:"PICKUP<br>INBOUND",
+      kDeparture:"DEPARTURE",
+      kArrival:"ARRIVAL",
+      kFlightNum:"FLIGHT #",
+      kTime:"TIME",
+      kHotel:"HOTEL:",
+      kAddress:"ADRESS &amp; LOCATION:",
+      kCheckIn:"CHECK IN:",
+      kCheckOut:"CHECK OUT:",
+      noteHotel:"*The hotel will request a credit card on file in case of incidentals — please provide the OP corporate card.",
+      kDays:"DAYS",
+      kTotal:"TOTAL",
+      kPickup:"PICKUP",
+      kHour:"HOUR",
+      kDestination:"DESTINATION",
+      kDriver:"DRIVER",
+      kPhone:"PHONE",
+      kPlate:"PLATE",
+      contactsBar:"OMNICOM PRODUCTION LATAM S.A.S<br>CONTACTS",
+      contactRoleCoord:"TRAVEL COORDINATOR",
+      contactRoleEmergency:"TRAVEL EMERGENCY",
+      contactNameLabel:"NAME:",
+      contactPhoneLabel:"PHONE #",
+      footNote:"Confidential - Not for Public Consumption or Distribution"
+    }
+  };
+
+  var currentLang = 'es';
+
+  function applyLang(lang){
+    currentLang = lang;
+    var dict = DICT[lang];
+    document.getElementById('htmlRoot').setAttribute('lang', lang);
+
+    document.querySelectorAll('[data-i18n]').forEach(function(el){
+      var key = el.getAttribute('data-i18n');
+      if (!(key in dict)) return;
+      // Elements whose translation contains markup (e.g. <br>, nested <b>) need innerHTML
+      if (/[<>]/.test(dict[key])){
+        el.innerHTML = dict[key];
+      } else {
+        el.textContent = dict[key];
+      }
+    });
+
+    var dateInputs = document.querySelectorAll('input[placeholder]');
+    dateInputs.forEach(function(inp){
+      inp.setAttribute('placeholder', dict.placeholderDate);
+    });
+
+    document.getElementById('langEs').classList.toggle('active', lang === 'es');
+    document.getElementById('langEn').classList.toggle('active', lang === 'en');
+  }
+
+  document.getElementById('langEs').addEventListener('click', function(){ applyLang('es'); });
+  document.getElementById('langEn').addEventListener('click', function(){ applyLang('en'); });
+  applyLang('es');
 
   // ---- Live binding: inputs -> preview ----
   var inputs = document.querySelectorAll('[data-bind]');
@@ -497,10 +724,10 @@
   // ---- Download PDF ----
   document.getElementById('btnPdf').addEventListener('click', function(){
     if (typeof html2pdf === 'undefined'){
-      toast('No se pudo cargar el generador de PDF. Usa el botón Imprimir → Guardar como PDF.', true);
+      toast(DICT[currentLang].toastNoLib, true);
       return;
     }
-    toast('Generando PDF…');
+    toast(DICT[currentLang].toastGenerating);
     // Reset display scale so html2canvas captures at full resolution
     var prev = scaleWrap.style.transform;
     scaleWrap.style.transform = 'none';
@@ -518,12 +745,12 @@
     html2pdf().set(opt).from(sheet).save().then(function(){
       scaleWrap.style.transform = prev;
       fit();
-      toast('PDF descargado ✓');
+      toast(DICT[currentLang].toastDone);
     }).catch(function(err){
       console.error(err);
       scaleWrap.style.transform = prev;
       fit();
-      toast('Ocurrió un error al generar el PDF. Intenta con Imprimir → Guardar como PDF.', true);
+      toast(DICT[currentLang].toastErr, true);
     });
   });
 

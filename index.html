@@ -650,9 +650,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     .topbar,.editor,#toast{display:none!important;}
     .workspace{display:block;}
     .preview-wrap{padding:0;overflow:visible;}
-    .sheet-scale{transform:none!important;}
     .sheet{box-shadow:none;padding:24px 30px;}
     body{background:#fff;}
+    @page{size:A4;margin:0;}
+    /* Force background colors/images to actually print (browsers skip them by default) */
+    *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important;}
   }
 </style>
 </head>
@@ -675,7 +677,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button type="button" id="langEs" class="active" data-lang="es">ES</button>
       <button type="button" id="langEn" data-lang="en">EN</button>
     </div>
-    <button class="btn btn-ghost" id="btnPrint" title="Descarga el PDF directamente">
+    <button class="btn btn-ghost" id="btnPrint" title="Abre el diálogo de impresión del navegador">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       <span data-i18n="btnPrint">Imprimir</span>
     </button>
@@ -1116,6 +1118,20 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     scaleWrap.style.height = (sheet.offsetHeight * scale) + 'px';
   }
   window.addEventListener('resize', fit);
+
+  // ---- Shrink the sheet to fit on a single printed A4 page ----
+  var PAGE_H_PX = 1122; // A4 height at ~96dpi, matches the @page size set in print CSS
+  function fitForPrint(){
+    var sheetH = sheet.offsetHeight;
+    var scale = Math.min(1, PAGE_H_PX / sheetH);
+    scaleWrap.style.transformOrigin = 'top left';
+    scaleWrap.style.transform = 'scale(' + scale + ')';
+    scaleWrap.style.width = (SHEET_W * scale) + 'px';
+    scaleWrap.style.height = (sheetH * scale) + 'px';
+  }
+  window.addEventListener('beforeprint', fitForPrint);
+  window.addEventListener('afterprint', fit);
+
   var roScheduled = false;
   var ro = new ResizeObserver(function(){
     if (roScheduled) return;
@@ -1214,22 +1230,11 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   });
 
-  // ---- "Imprimir": downloads the PDF directly and silently — identical to "Descargar PDF".
-  //      No print dialog, no new tab. (See note above savePdf(): browsers won't let a page
-  //      pick an arbitrary folder with zero clicks — set your browser's default download
-  //      folder to Desktop once, and this lands there automatically every time.) ----
+  // ---- "Imprimir": opens the browser's native print dialog. The @media print rules
+  //      hide the toolbar/editor, force background colors to print, and fitForPrint()
+  //      (triggered on 'beforeprint') shrinks the sheet so it always fits one page. ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    if (typeof html2canvas === 'undefined' || !window.jspdf){
-      toast(DICT[currentLang].toastNoLib, true);
-      return;
-    }
-    toast(DICT[currentLang].toastGenerating);
-    buildPdf().then(function(pdf){
-      savePdf(pdf);
-    }).catch(function(err){
-      console.error(err);
-      toast(DICT[currentLang].toastErr, true);
-    });
+    window.print();
   });
 
 })();

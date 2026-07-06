@@ -677,7 +677,7 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
       <button type="button" id="langEs" class="active" data-lang="es">ES</button>
       <button type="button" id="langEn" data-lang="en">EN</button>
     </div>
-    <button class="btn btn-ghost" id="btnPrint" title="Abre el diálogo de impresión del navegador">
+    <button class="btn btn-ghost" id="btnPrint" title="Genera el PDF y abre el diálogo de impresión">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V2h12v7M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       <span data-i18n="btnPrint">Imprimir</span>
     </button>
@@ -1230,11 +1230,43 @@ function(t){t.__bidiEngine__=t.prototype.__bidiEngine__=function(t){var r,n,i,a,
     });
   });
 
-  // ---- "Imprimir": opens the browser's native print dialog. The @media print rules
-  //      hide the toolbar/editor, force background colors to print, and fitForPrint()
-  //      (triggered on 'beforeprint') shrinks the sheet so it always fits one page. ----
+  // ---- "Imprimir": builds the exact same one-page, fully-colored PDF as "Descargar PDF"
+  //      (via html2canvas, which renders it as a pixel-perfect image — not reliant on the
+  //      browser's own print CSS/background-graphics settings), then loads that PDF into a
+  //      hidden iframe and triggers the native print dialog on it. This guarantees a single
+  //      page with the full design every time, regardless of browser print quirks. ----
   document.getElementById('btnPrint').addEventListener('click', function(){
-    window.print();
+    if (typeof html2canvas === 'undefined' || !window.jspdf){
+      toast(DICT[currentLang].toastNoLib, true);
+      return;
+    }
+    toast(DICT[currentLang].toastGenerating);
+    buildPdf().then(function(pdf){
+      var blobUrl = pdf.output('bloburl');
+      var iframe = document.createElement('iframe');
+      iframe.style.position = 'fixed';
+      iframe.style.right = '0';
+      iframe.style.bottom = '0';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = '0';
+      iframe.src = blobUrl;
+      document.body.appendChild(iframe);
+      iframe.onload = function(){
+        setTimeout(function(){
+          try {
+            iframe.contentWindow.focus();
+            iframe.contentWindow.print();
+          } catch (e) {
+            console.error(e);
+          }
+        }, 150);
+      };
+      toast(DICT[currentLang].toastDone);
+    }).catch(function(err){
+      console.error(err);
+      toast(DICT[currentLang].toastErr, true);
+    });
   });
 
 })();
